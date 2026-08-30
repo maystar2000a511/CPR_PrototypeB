@@ -169,6 +169,67 @@
         font-size: 1.6rem; font-weight: bold; margin-top: 5px; color: white; letter-spacing: 1px;
       }
  
+
+      /* Shared compression-training controls.
+         Both prototypes use the same compression task:
+         30 user-triggered simulated compressions, a 110/min metronome,
+         a 100–120/min target, 5–6 cm depth instruction, and full recoil instruction.
+         The browser does NOT measure real physical depth or force. */
+      #compression-guide {
+        display: none;
+        margin: 0 0 12px 0;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(0,0,0,0.78);
+        color: #fff;
+        text-align: center;
+        line-height: 1.35;
+      }
+
+      #compression-guide .compression-target {
+        font-weight: 800;
+        letter-spacing: 0.4px;
+      }
+
+      #compression-guide .compression-note {
+        margin-top: 5px;
+        font-size: 0.78rem;
+        opacity: 0.82;
+      }
+
+      #compression-tap-btn {
+        display: none;
+        flex: 3;
+        min-height: 74px;
+        padding: 18px 20px;
+        border-radius: 50px;
+        border: none;
+        background: #ffeb3b;
+        color: #111;
+        font-size: 1.15rem;
+        font-weight: 900;
+        cursor: pointer;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      #compression-tap-btn:active {
+        transform: scale(0.97);
+      }
+
+      #compression-feedback {
+        display: none;
+        margin: 0 0 10px 0;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: rgba(0,0,0,0.82);
+        color: #fff;
+        font-weight: 900;
+        text-align: center;
+        letter-spacing: 0.5px;
+      }
+
      #finish-page { display: none; opacity: 0; }
    </style>
   </head>
@@ -188,7 +249,7 @@
         <div class="how-to-use">
          <p>🔊 <b>Audio:</b> Turn up volume.</p>
          <p>📷 <b>Marker:</b> Aim at <b>HIRO</b>.</p>
-         <p>🫀 <b>Pacing:</b> Tap to compress. Stay <b>Green</b>!</p>
+         <p>🫀 <b>Pacing:</b> Tap once per compression. <b>Green = target rate (100–120/min).</b></p>
        </div>
  
        <button class="btn-main" onclick="initExperience()">START SESSION</button>
@@ -207,6 +268,11 @@
       <div class="progress-container"><div id="progress-bar"></div></div>
       <div class="instruction-panel">
         <div id="cpr-counter">0</div>
+        <div id="compression-guide">
+          <div class="compression-target">TARGET: 100–120/min · 5–6 cm · FULL RECOIL</div>
+          <div class="compression-note">Tap once per simulated compression. Physical depth/force is instructed but is not measured by the phone.</div>
+        </div>
+        <div id="compression-feedback">FIND THE RHYTHM</div>
         <div class="info-box">
          <small id="step-num" style="color: var(--accent); font-weight: bold;">STEP 1 OF 13</small>
          <div id="short-title">AREA SAFE</div> 
@@ -214,6 +280,7 @@
         <div class="controls">
          <button class="btn-reset" onclick="location.reload()">RESET</button>
          <button id="start-cpr-btn" onclick="startCPR()">START COMPRESSIONS</button>
+         <button id="compression-tap-btn" type="button" onclick="registerCompression()">TAP COMPRESSION</button>
          <button id="next-btn-text" class="btn-next" onclick="nextStep()">CONTINUE →</button>
        </div>
       </div>
@@ -298,6 +365,17 @@
       let isMuted = false;
       let isMinimalist = false;
       let audioCtx = null;
+
+      const TARGET_RATE_MIN = 100;
+      const TARGET_RATE_MAX = 120;
+      const METRONOME_RATE = 110;
+      const METRONOME_INTERVAL = 60000 / METRONOME_RATE;
+      const MIN_TAP_GAP = 150;
+
+      let metronomeTimer = null;
+      let compressionActive = false;
+      let compressionTimestamps = [];
+      let compressionIntervals = [];
       
       const synth = window.speechSynthesis;
 
@@ -339,7 +417,7 @@
         "Check for breathing for 10 seconds",
         "Place the heel of your hand on chest",
         "Place your other hand on top",
-        "Push 30 times, 5 centimeters deep, at 100 per minute.",
+        "Perform 30 chest compressions at 100 to 120 per minute. Compress 5 to 6 centimeters, allow full chest recoil after each compression, and minimize interruptions.",
         "Tilt the head back",
         "Close the nose",
         "Give 2 rescue breaths, 1 second each, until the chest rises"
@@ -444,58 +522,248 @@
         }, 800);
       }
  
+      function stopCompressionActivity() {
+        compressionActive = false;
+
+        if (metronomeTimer) {
+          clearInterval(metronomeTimer);
+          metronomeTimer = null;
+        }
+
+        const handImg = document.getElementById('hand-image');
+        if (handImg) {
+          handImg.setAttribute('animation', 'enabled: false');
+        }
+      }
+
+      function hideCompressionUI() {
+        document.getElementById('compression-guide').style.display = 'none';
+        document.getElementById('compression-feedback').style.display = 'none';
+        document.getElementById('compression-tap-btn').style.display = 'none';
+        document.getElementById('cpr-counter').style.display = 'none';
+      }
+
+      function resetCompressionFeedback() {
+        const feedback = document.getElementById('compression-feedback');
+        const ring = document.getElementById('cpr-ring');
+
+        feedback.innerText = 'FIND THE RHYTHM';
+        feedback.style.color = '#ffffff';
+
+        if (ring) {
+          ring.setAttribute('color', '#00f2fe');
+          ring.setAttribute('material', 'opacity', 1);
+        }
+      }
+
       function nextStep() {
         clearInterval(timer);
-        document.getElementById('cpr-counter').style.display = 'none';
+        timer = null;
+        stopCompressionActivity();
+        hideCompressionUI();
+
         document.getElementById('next-btn-text').style.display = 'block';
         document.getElementById('start-cpr-btn').style.display = 'none';
- 
+
         if (currentStep < 13) {
-         document.getElementById('group' + currentStep).setAttribute('visible', 'false');
-         currentStep++;
-         document.getElementById('group' + currentStep).setAttribute('visible', 'true');
- 
+          document.getElementById('group' + currentStep).setAttribute('visible', 'false');
+          currentStep++;
+          document.getElementById('group' + currentStep).setAttribute('visible', 'true');
+
           document.getElementById('step-num').innerText = `STEP ${currentStep} OF 13`;
-         document.getElementById('short-title').innerText = shortTitles[currentStep - 1];
-         speakText(voiceInstructions[currentStep - 1]);
-         
-         document.getElementById('progress-bar').style.width = (currentStep * 7.69) + '%';
-          
-          if (currentStep === 13) document.getElementById('next-btn-text').innerText = "FINISH ✓";
-          
+          document.getElementById('short-title').innerText = shortTitles[currentStep - 1];
+          speakText(voiceInstructions[currentStep - 1]);
+
+          document.getElementById('progress-bar').style.width = (currentStep * 7.69) + '%';
+
+          if (currentStep === 13) {
+            document.getElementById('next-btn-text').innerText = "FINISH ✓";
+          }
+
           if (currentStep === 10) {
             document.getElementById('next-btn-text').style.display = 'none';
             document.getElementById('start-cpr-btn').style.display = 'block';
+            resetCompressionFeedback();
           }
         } else {
-         showFinishPage();
+          showFinishPage();
         }
       }
- 
-      function startCPR() {
-        count = 0;
-        const handImg = document.getElementById('hand-image');
-        document.getElementById('cpr-counter').style.display = 'block';
-        document.getElementById('cpr-counter').innerText = count;
-        document.getElementById('start-cpr-btn').style.display = 'none';
-        
-        handImg.setAttribute('animation', 'enabled: true');
-        
-        timer = setInterval(() => {
-          count++;
-          if (count <= 30) {
-            document.getElementById('cpr-counter').innerText = count;
-            beep(950, 0.08); 
-          } else {
-            document.getElementById('cpr-counter').innerText = "DONE!";
-            handImg.setAttribute('animation', 'enabled: false');
-            clearInterval(timer);
-            document.getElementById('next-btn-text').style.display = 'block';
-            speakText("Compressions done. Proceed to next step.");
-          }
-        }, 545);
+
+      function startMetronome() {
+        beep(950, 0.08);
+        metronomeTimer = setInterval(() => {
+          beep(950, 0.08);
+        }, METRONOME_INTERVAL);
       }
- 
+
+      function startCPR() {
+        stopCompressionActivity();
+
+        count = 0;
+        compressionTimestamps = [];
+        compressionIntervals = [];
+        compressionActive = true;
+
+        const handImg = document.getElementById('hand-image');
+        const counter = document.getElementById('cpr-counter');
+        const startBtn = document.getElementById('start-cpr-btn');
+        const nextBtn = document.getElementById('next-btn-text');
+        const tapBtn = document.getElementById('compression-tap-btn');
+
+        counter.style.display = 'block';
+        counter.innerText = '0 / 30';
+        document.getElementById('compression-guide').style.display = 'block';
+        document.getElementById('compression-feedback').style.display = 'block';
+
+        startBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+        tapBtn.style.display = 'block';
+
+        resetCompressionFeedback();
+
+        if (handImg) {
+          handImg.setAttribute('animation', 'enabled: true');
+        }
+
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        startMetronome();
+      }
+
+      function getRollingCompressionRate() {
+        if (compressionIntervals.length === 0) return null;
+        const recent = compressionIntervals.slice(-3);
+        const avgInterval = recent.reduce((sum, value) => sum + value, 0) / recent.length;
+        return Math.round(60000 / avgInterval);
+      }
+
+      function updateRateFeedback(rate) {
+        const feedback = document.getElementById('compression-feedback');
+        const ring = document.getElementById('cpr-ring');
+
+        if (!rate) {
+          feedback.innerText = 'FIND THE RHYTHM';
+          feedback.style.color = '#ffffff';
+          if (ring) ring.setAttribute('color', '#00f2fe');
+          return;
+        }
+
+        if (rate >= TARGET_RATE_MIN && rate <= TARGET_RATE_MAX) {
+          feedback.innerText = `GOOD RATE • ${rate}/min`;
+          feedback.style.color = '#00ff88';
+          if (ring) ring.setAttribute('color', '#00ff88');
+        } else if (rate < TARGET_RATE_MIN) {
+          feedback.innerText = `TOO SLOW • ${rate}/min`;
+          feedback.style.color = '#ff4b2b';
+          if (ring) ring.setAttribute('color', '#ff4b2b');
+        } else {
+          feedback.innerText = `TOO FAST • ${rate}/min`;
+          feedback.style.color = '#ff4b2b';
+          if (ring) ring.setAttribute('color', '#ff4b2b');
+        }
+
+        // Short visual confirmation for each registered compression.
+        if (ring) {
+          ring.removeAttribute('animation__tap');
+          requestAnimationFrame(() => {
+            ring.setAttribute(
+              'animation__tap',
+              'property: scale; from: 1 1 1; to: 1.14 1.14 1.14; dur: 110; dir: alternate; loop: 1'
+            );
+          });
+        }
+      }
+
+      function registerCompression() {
+        if (!compressionActive || count >= 30) return;
+
+        const now = performance.now();
+        const previous = compressionTimestamps[compressionTimestamps.length - 1];
+
+        // Protect against duplicate touch/click events.
+        if (previous && (now - previous) < MIN_TAP_GAP) return;
+
+        if (previous) {
+          compressionIntervals.push(now - previous);
+        }
+
+        compressionTimestamps.push(now);
+        count++;
+
+        document.getElementById('cpr-counter').innerText = `${count} / 30`;
+
+        // A short rolling average avoids rapid red/green flicker caused by one imperfect tap.
+        const rollingRate = getRollingCompressionRate();
+        updateRateFeedback(rollingRate);
+
+        if (count >= 30) {
+          finishCompressionSession();
+        }
+      }
+
+      function finishCompressionSession() {
+        const counter = document.getElementById('cpr-counter');
+        const nextBtn = document.getElementById('next-btn-text');
+        const tapBtn = document.getElementById('compression-tap-btn');
+        const feedback = document.getElementById('compression-feedback');
+        const ring = document.getElementById('cpr-ring');
+
+        stopCompressionActivity();
+        tapBtn.style.display = 'none';
+
+        const averageRate =
+          compressionTimestamps.length > 1
+            ? Math.round(
+                60000 * (compressionTimestamps.length - 1) /
+                (compressionTimestamps[compressionTimestamps.length - 1] - compressionTimestamps[0])
+              )
+            : null;
+
+        const intervalsInTarget = compressionIntervals.filter(interval => {
+          const rate = 60000 / interval;
+          return rate >= TARGET_RATE_MIN && rate <= TARGET_RATE_MAX;
+        }).length;
+
+        const targetRatePercent =
+          compressionIntervals.length > 0
+            ? Math.round((intervalsInTarget / compressionIntervals.length) * 100)
+            : null;
+
+        window.lastCompressionMetrics = {
+          prototype: 'B',
+          count: count,
+          averageRate: averageRate,
+          targetRatePercent: targetRatePercent,
+          targetRateMin: TARGET_RATE_MIN,
+          targetRateMax: TARGET_RATE_MAX,
+          depthMeasured: false,
+          forceMeasured: false
+        };
+
+        counter.innerText = averageRate
+          ? `DONE!  Avg: ${averageRate}/min`
+          : 'DONE!';
+
+        if (averageRate && averageRate >= TARGET_RATE_MIN && averageRate <= TARGET_RATE_MAX) {
+          feedback.innerText = '30 COMPLETE • TARGET RATE ACHIEVED';
+          feedback.style.color = '#00ff88';
+          if (ring) ring.setAttribute('color', '#00ff88');
+        } else {
+          feedback.innerText = '30 COMPLETE • REVIEW THE TARGET RATE';
+          feedback.style.color = '#ffeb3b';
+          if (ring) ring.setAttribute('color', '#ffeb3b');
+        }
+
+        nextBtn.style.display = 'block';
+        nextBtn.disabled = false;
+        nextBtn.innerText = 'CONTINUE →';
+
+        speakText("Thirty compressions complete. Proceed to the next step.");
+      }
+
       function showFinishPage() {
         document.getElementById('ar-ui').style.display = 'none';
         document.getElementById('sos-btn').style.display = 'none';
