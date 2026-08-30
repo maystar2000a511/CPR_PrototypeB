@@ -33,12 +33,33 @@
         50% { transform: scale(1.05); }
         100% { transform: scale(1); }
       }
+
+      .mute-btn {
+        position: fixed; top: 20px; left: 20px; z-index: 5000;
+        background: rgba(0, 0, 0, 0.6); color: white; border: 1px solid rgba(255,255,255,0.3);
+        width: 45px; height: 45px; border-radius: 50%; font-size: 1.2rem;
+        cursor: pointer; display: none; backdrop-filter: blur(10px);
+        transition: 0.3s; pointer-events: auto;
+      }
+      
+      .mute-btn:hover { background: rgba(0, 0, 0, 0.8); }
+
+      .minimalist-btn {
+        position: fixed; top: 75px; left: 20px; z-index: 5000;
+        background: rgba(0, 0, 0, 0.6); color: white; border: 1px solid rgba(255,255,255,0.3);
+        width: 45px; height: 45px; border-radius: 50%; font-size: 1.2rem;
+        cursor: pointer; display: none; backdrop-filter: blur(10px);
+        transition: 0.3s; pointer-events: auto;
+      }
+      
+      .minimalist-btn:hover { background: rgba(0, 0, 0, 0.8); }
  
      .overlay-page {
        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
        background: var(--primary-gradient); z-index: 3000;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         text-align: center; transition: 0.8s ease-in-out;
+        pointer-events: auto;
       }
  
      .glass-card {
@@ -155,13 +176,15 @@
   <body>
  
     <button id="sos-btn" class="emergency-btn" onclick="window.location.href='tel:112'">CALL 112 📞</button>
+    <button id="mute-btn" class="mute-btn" onclick="toggleMute()">🔊</button>
+    <button id="minimalist-btn" class="minimalist-btn" onclick="toggleMinimalist()">👁️</button>
  
     <div id="landing-page" class="overlay-page">
       <div class="glass-card">
         <img src="HSA.png" class="uni-logo" alt="Logo">
        <h1>CPR AR MISSION</h1>
        <p class="subtitle">Interactive Training</p>
-        
+       
         <div class="how-to-use">
          <p>🔊 <b>Audio:</b> Turn up volume.</p>
          <p>📷 <b>Marker:</b> Aim at <b>HIRO</b>.</p>
@@ -169,7 +192,7 @@
        </div>
  
        <button class="btn-main" onclick="initExperience()">START SESSION</button>
-     </div>
+      </div>
     </div>
  
     <div id="finish-page" class="overlay-page">
@@ -177,7 +200,7 @@
         <h1 style="color: #27ae60;">MISSION COMPLETE</h1>
        <p style="margin-bottom: 30px;">You have mastered the CPR cycle effectively.</p>
        <button class="btn-main" onclick="location.reload()">RESTART</button>
-     </div>
+      </div>
     </div>
  
     <div id="ar-ui">
@@ -193,7 +216,7 @@
          <button id="start-cpr-btn" onclick="startCPR()">START COMPRESSIONS</button>
          <button id="next-btn-text" class="btn-next" onclick="nextStep()">CONTINUE →</button>
        </div>
-     </div>
+      </div>
     </div>
  
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
@@ -202,41 +225,39 @@
      </a-assets>
  
      <a-marker preset="hiro" smooth="true" smoothCount="10" smoothTolerance="0.02" smoothThreshold="5">
-        
+       
        <a-entity id="group1">
-         <a-cone color="#00ff88" radius-bottom="0.2" height="0.6" position="-2.0 1.5 0" rotation="180 0 0" animation="property: position; to: -2.0 1.7 0; dir: alternate; dur: 800; loop: true"></a-cone>
-       </a-entity>
+         </a-entity>
  
        <a-entity id="group2" visible="false">
-         <a-sphere color="#ffeb3b" radius="0.25" position="-2.0 1.6 -0.4" animation="property: scale; to: 1.3 1.3 1.3; dir: alternate; dur: 400; loop: true"></a-sphere>
-       </a-entity>
+         </a-entity>
  
        <a-entity id="group3" visible="false">
-         <a-box color="#ff4b2b" position="-2.0 1.5 -0.5" scale="0.3 0.3 0.3" animation="property: rotation; to: 0 360 0; dur: 2000; loop: true"></a-box>
+         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -0.5" rotation="180 0 0"></a-cone>
        </a-entity>
  
        <a-entity id="group4" visible="false">
-         <a-torus color="#00f2fe" radius="0.2" radius-tubular="0.02" position="-2.0 1.5 -1" rotation="90 0 0"></a-torus>
+         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -1" rotation="180 0 0"></a-cone>
        </a-entity>
  
        <a-entity id="group5" visible="false">
-         <a-cylinder color="#ffeb3b" radius="0.15" height="0.4" position="-2.0 1.5 -0.8" animation="property: position; to: -2.0 1.7 -0.8; dir: alternate; dur: 600; loop: true"></a-cylinder>
+         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -0.8" rotation="180 0 0"></a-cone>
        </a-entity>
  
        <a-entity id="group6" visible="false">
-         <a-box color="#ff8800" position="-2.0 1.4 -0.6" scale="0.4 0.4 0.4" animation="property: rotation; to: 360 360 0; dur: 3000; loop: true"></a-box>
+         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.4 -0.6" rotation="180 0 0"></a-cone>
        </a-entity>
  
        <a-entity id="group7" visible="false">
-         <a-sphere color="#00ff88" radius="0.2" position="-2.0 1.5 -0.5" animation="property: scale; to: 1.5 1.5 1.5; dir: alternate; dur: 1000; loop: true"></a-sphere>
+         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -0.5" rotation="180 0 0"></a-cone>
        </a-entity>
 
        <a-entity id="group8" visible="false">
-         <a-torus color="#ff4b2b" radius="0.25" radius-tubular="0.05" position="-2.0 1.4 0" rotation="90 0 0"></a-torus>
+         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.4 0" rotation="180 0 0"></a-cone>
        </a-entity>
 
        <a-entity id="group9" visible="false">
-         <a-cone color="#00f2fe" radius-bottom="0.25" height="0.5" position="-2.0 1.5 0" rotation="180 0 0"></a-cone>
+         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 0" rotation="180 0 0"></a-cone>
        </a-entity>
 
        <a-entity id="group10" visible="false">
@@ -245,15 +266,15 @@
        </a-entity>
 
        <a-entity id="group11" visible="false">
-         <a-torus color="#ffeb3b" radius="0.2" radius-tubular="0.02" position="-2.0 1.5 -1" rotation="90 0 0" animation="property: rotation; to: 90 360 0; dur: 2000; loop: true"></a-torus>
+         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -1" rotation="180 0 0"></a-cone>
        </a-entity>
 
        <a-entity id="group12" visible="false">
-         <a-sphere color="#ff4b2b" radius="0.15" position="-2.0 1.6 -1" animation="property: scale; to: 1.2 1.2 1.2; dir: alternate; dur: 300; loop: true"></a-sphere>
+         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.6 -1" rotation="180 0 0"></a-cone>
        </a-entity>
 
        <a-entity id="group13" visible="false">
-         <a-sphere color="#00f2fe" radius="0.3" position="-2.0 1.6 -1" opacity="0.5" animation="property: scale; from: 1 1 1; to: 1.5 1.5 1.5; dur: 1000; loop: true; dir: alternate"></a-sphere>
+         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.6 -1" rotation="180 0 0"></a-cone>
        </a-entity>
  
      </a-marker>
@@ -261,7 +282,6 @@
    </a-scene>
  
    <script>
-      // كود لمنع التكبير (Zoom) عند النقر المزدوج على الشاشة (خاصة لأجهزة أندرويد)
       document.addEventListener('dblclick', function(event) {
         event.preventDefault();
       }, { passive: false });
@@ -275,8 +295,10 @@
       let timer = null;
       let isMarkerFound = false;
       let hasStartedSession = false;
+      let isMuted = false;
+      let isMinimalist = false;
+      let audioCtx = null;
       
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const synth = window.speechSynthesis;
 
       window.addEventListener('DOMContentLoaded', () => {
@@ -322,8 +344,39 @@
         "Close the nose",
         "Give 2 rescue breaths, 1 second each, until the chest rises"
       ];
+
+      function toggleMute() {
+        isMuted = !isMuted;
+        const muteBtn = document.getElementById('mute-btn');
+        if (isMuted) {
+          muteBtn.innerText = '🔇';
+          synth.cancel();
+          document.getElementById('next-btn-text').disabled = false;
+          document.getElementById('start-cpr-btn').disabled = false;
+        } else {
+          muteBtn.innerText = '🔊';
+        }
+      }
+
+      function toggleMinimalist() {
+        isMinimalist = !isMinimalist;
+        const minBtn = document.getElementById('minimalist-btn');
+        const progContainer = document.querySelector('.progress-container');
+        const stepNum = document.getElementById('step-num');
+        
+        if (isMinimalist) {
+          minBtn.innerText = '🕶️';
+          progContainer.style.display = 'none';
+          stepNum.style.display = 'none';
+        } else {
+          minBtn.innerText = '👁️';
+          progContainer.style.display = 'block';
+          stepNum.style.display = 'block';
+        }
+      }
  
       function beep(freq, duration) {
+        if (isMuted || !audioCtx) return;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain); gain.connect(audioCtx.destination);
@@ -334,12 +387,19 @@
 
       function speakText(text) {
         synth.cancel();
+
+        const nextBtn = document.getElementById('next-btn-text');
+        const startCprBtn = document.getElementById('start-cpr-btn');
+        
+        if (isMuted) {
+          nextBtn.disabled = false;
+          startCprBtn.disabled = false;
+          return;
+        }
+
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'en-US';
         utterance.rate = 1.0;
-        
-        const nextBtn = document.getElementById('next-btn-text');
-        const startCprBtn = document.getElementById('start-cpr-btn');
         
         utterance.onstart = () => {
           nextBtn.disabled = true;
@@ -360,7 +420,12 @@
       }
  
       function initExperience() {
+        if (!audioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioContext();
+        }
         if (audioCtx.state === 'suspended') audioCtx.resume();
+        
         hasStartedSession = true;
         
         if (!isMarkerFound) {
@@ -374,6 +439,8 @@
          document.getElementById('landing-page').style.display = 'none';
          document.getElementById('ar-ui').style.display = 'block';
          document.getElementById('sos-btn').style.display = 'block';
+         document.getElementById('mute-btn').style.display = 'block';
+         document.getElementById('minimalist-btn').style.display = 'block';
         }, 800);
       }
  
@@ -432,6 +499,8 @@
       function showFinishPage() {
         document.getElementById('ar-ui').style.display = 'none';
         document.getElementById('sos-btn').style.display = 'none';
+        document.getElementById('mute-btn').style.display = 'none';
+        document.getElementById('minimalist-btn').style.display = 'none';
         const fp = document.getElementById('finish-page');
         fp.style.display = 'flex';
         setTimeout(() => { fp.style.opacity = '1'; }, 100);
