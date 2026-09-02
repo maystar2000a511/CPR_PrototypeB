@@ -1,779 +1,660 @@
 <!DOCTYPE html>
 <html>
-  <head>
-   <title>CPR AR Trainer - Research Edition (Version B)</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    
-   <style>
-      :root {
-       --primary-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
-       --accent: #00f2fe;
-       --emergency-red: #ff4b2b;
-       --success-green: #00ff88;
-       --glass: rgba(255, 255, 255, 0.95); 
-      }
- 
-      body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #000; overflow: hidden; touch-action: none; }
-      
-      button { touch-action: manipulation; }
- 
-     .emergency-btn {
-       position: fixed; top: 20px; right: 20px; z-index: 5000;
-       background: var(--emergency-red); color: white; border: none;
-        padding: 12px 20px; border-radius: 12px; font-weight: bold;
-       box-shadow: 0 0 15px rgba(255, 75, 43, 0.6); cursor: pointer;
-        display: none; animation: pulse 1.5s infinite; pointer-events: auto;
-      }
- 
-      @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-      }
+<head>
+  <title>CPR AR Trainer - Research Edition | Prototype B</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <style>
+    :root { --primary-gradient:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%); --accent:#00f2fe; --emergency-red:#ff4b2b; --success-green:#00ff88; --glass:rgba(255,255,255,.95); }
+    body { margin:0; font-family:'Segoe UI',sans-serif; background:#000; overflow:hidden; touch-action:none; }
+    button { touch-action:manipulation; }
+    .emergency-btn { position:fixed; top:20px; right:20px; z-index:5000; background:var(--emergency-red); color:white; border:none; padding:12px 20px; border-radius:12px; font-weight:bold; box-shadow:0 0 15px rgba(255,75,43,.6); cursor:pointer; display:none; animation:pulse 1.5s infinite; pointer-events:auto; }
+    @keyframes pulse { 0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)} }
+    .mute-btn,.minimalist-btn { position:fixed; left:20px; z-index:5000; background:rgba(0,0,0,.6); color:white; border:1px solid rgba(255,255,255,.3); width:45px; height:45px; border-radius:50%; font-size:1.2rem; cursor:pointer; display:none; backdrop-filter:blur(10px); pointer-events:auto; }
+    .mute-btn { top:20px; } .minimalist-btn { top:75px; }
+    .overlay-page { position:fixed; inset:0; background:var(--primary-gradient); z-index:3000; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; transition:.8s ease-in-out; pointer-events:auto; }
+    .glass-card { background:var(--glass); backdrop-filter:blur(20px); border-radius:35px; padding:35px 30px; width:85%; max-width:450px; border:1px solid rgba(255,255,255,.8); box-shadow:0 15px 35px rgba(0,10,30,.1); position:relative; color:#2c3e50; }
+    .glass-card h1 { color:#1e3c72; margin-bottom:5px; font-size:1.8rem; } .glass-card p.subtitle { color:#7f8c8d; margin-top:0; font-weight:500; margin-bottom:20px; }
+    .uni-logo { position:absolute; top:20px; left:20px; width:50px; height:auto; }
+    .how-to-use { text-align:left; background:#f4f7f6; padding:20px; border-radius:20px; margin:20px 0; font-size:1rem; line-height:1.6; color:#34495e; border:1px solid #e1e8ed; }
+    .how-to-use p { margin:8px 0; } .how-to-use b { color:#0072ff; }
+    .participant-box { width:100%; box-sizing:border-box; padding:12px; margin:10px 0 4px; border:1px solid #d0d7de; border-radius:12px; font-size:1rem; }
+    .btn-main { background:linear-gradient(135deg,#ff416c 0%,#ff4b2b 100%); color:#fff; padding:18px 50px; border:none; border-radius:50px; font-weight:bold; font-size:1.2rem; cursor:pointer; box-shadow:0 10px 20px rgba(255,75,43,.3); }
+    #ar-ui { position:fixed; inset:0; z-index:1000; display:none; pointer-events:none; }
+    .progress-container { position:absolute; top:30px; left:50%; transform:translateX(-50%); width:85%; height:8px; background:rgba(255,255,255,.2); border-radius:10px; }
+    #progress-bar { width:7.69%; height:100%; background:var(--accent); border-radius:10px; transition:.8s ease; }
+    .instruction-panel { position:absolute; bottom:40px; left:50%; transform:translateX(-50%); width:90%; pointer-events:auto; }
+    .info-box { background:rgba(0,0,0,.85); color:white; padding:20px; border-radius:25px; border-left:6px solid var(--accent); margin-bottom:20px; }
+    .controls { display:flex; gap:12px; }
+    .btn-next,#start-cpr-btn,#compression-tap-btn { flex:3; padding:20px; border-radius:50px; border:none; font-weight:bold; font-size:1.2rem; cursor:pointer; }
+    .btn-next { color:white; background:var(--emergency-red); } #start-cpr-btn { background:var(--success-green); color:#000; display:none; }
+    .btn-reset { flex:1; background:#333; color:#fff; border-radius:50px; border:1px solid #555; font-weight:bold; cursor:pointer; }
+    #cpr-counter { font-size:5rem; color:#ffeb3b; font-weight:900; display:none; text-shadow:0 0 30px rgba(255,235,59,.8); text-align:center; margin-bottom:15px; }
+    #short-title { font-size:1.6rem; font-weight:bold; margin-top:5px; color:white; letter-spacing:1px; }
+    #detail-text { display:none; margin-top:8px; font-size:.95rem; line-height:1.4; color:#fff; opacity:.95; }
+    #compression-guide { display:none; margin:0 0 12px; padding:12px 14px; border-radius:16px; background:rgba(0,0,0,.78); color:#fff; text-align:center; line-height:1.35; }
+    #compression-guide .compression-target { font-weight:800; letter-spacing:.4px; }
+    #compression-guide .compression-note { margin-top:5px; font-size:.78rem; opacity:.82; }
+    #compression-tap-btn { display:none; min-height:74px; background:#ffeb3b; color:#111; }
+    #compression-feedback { display:none; margin:0 0 10px; padding:10px 14px; border-radius:14px; background:rgba(0,0,0,.82); color:#fff; font-weight:900; text-align:center; letter-spacing:.5px; }
+    #finish-page { display:none; opacity:0; } .download-btn { margin-top:12px; background:#333; color:white; border:none; padding:12px 22px; border-radius:50px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <button id="sos-btn" class="emergency-btn" onclick="logEvent('call_112_pressed'); window.location.href='tel:112'">CALL 112 📞</button>
+  <button id="mute-btn" class="mute-btn" onclick="toggleMute()">🔊</button>
+  <button id="minimalist-btn" class="minimalist-btn" onclick="toggleMinimalist()">👁️</button>
 
-      .mute-btn {
-        position: fixed; top: 20px; left: 20px; z-index: 5000;
-        background: rgba(0, 0, 0, 0.6); color: white; border: 1px solid rgba(255,255,255,0.3);
-        width: 45px; height: 45px; border-radius: 50%; font-size: 1.2rem;
-        cursor: pointer; display: none; backdrop-filter: blur(10px);
-        transition: 0.3s; pointer-events: auto;
-      }
-      
-      .mute-btn:hover { background: rgba(0, 0, 0, 0.8); }
+  <div id="landing-page" class="overlay-page">
+    <div class="glass-card">
+      <img src="HSA.png" class="uni-logo" alt="Logo">
+      <h1>CPR AR MISSION</h1>
+      <p class="subtitle">Interactive Training</p>
+      <input id="participant-id" class="participant-box" type="text" placeholder="Participant ID (e.g., P001)" autocomplete="off">
+      <div class="how-to-use">
+        <p>📷 <b>Marker:</b> Place the HIRO marker at the predefined marked position beside the CPR manikin, then aim the camera at it.</p>
+        <p>🔊 <b>Audio:</b> Full CPR instructions are spoken for the same 13 steps. Audio can be muted.</p>
+        <p>🫀 <b>Compressions:</b> Tap once per simulated compression. Rate guidance targets <b>100–120/min</b>.</p>
+        <p>👁️ <b>Display control:</b> The minimalist control can hide progress/step indicators.</p>
+      </div>
+      <button class="btn-main" onclick="initExperience()">START SESSION</button>
+    </div>
+  </div>
 
-      .minimalist-btn {
-        position: fixed; top: 75px; left: 20px; z-index: 5000;
-        background: rgba(0, 0, 0, 0.6); color: white; border: 1px solid rgba(255,255,255,0.3);
-        width: 45px; height: 45px; border-radius: 50%; font-size: 1.2rem;
-        cursor: pointer; display: none; backdrop-filter: blur(10px);
-        transition: 0.3s; pointer-events: auto;
-      }
-      
-      .minimalist-btn:hover { background: rgba(0, 0, 0, 0.8); }
- 
-     .overlay-page {
-       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-       background: var(--primary-gradient); z-index: 3000;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        text-align: center; transition: 0.8s ease-in-out;
-        pointer-events: auto;
-      }
- 
-     .glass-card {
-       background: var(--glass); backdrop-filter: blur(20px);
-       border-radius: 35px; padding: 35px 30px; width: 85%; max-width: 450px;
-        border: 1px solid rgba(255,255,255,0.8); 
-        box-shadow: 0 15px 35px rgba(0, 10, 30, 0.1);
-       position: relative;
-       color: #2c3e50; 
-      }
-      
-      .glass-card h1 {
-        color: #1e3c72;
-        margin-bottom: 5px;
-        font-size: 1.8rem;
-      }
+  <div id="finish-page" class="overlay-page">
+    <div class="glass-card">
+      <h1 style="color:#27ae60;">MISSION COMPLETE</h1>
+      <p style="margin-bottom:18px;">The CPR training sequence is complete.</p>
+      <button class="btn-main" onclick="downloadStudyData()">DOWNLOAD DATA</button>
+      <button class="download-btn" onclick="location.reload()">RESTART</button>
+    </div>
+  </div>
 
-      .glass-card p.subtitle {
-        color: #7f8c8d;
-        margin-top: 0;
-        font-weight: 500;
-        margin-bottom: 20px;
-      }
- 
-      .uni-logo {
-       position: absolute; top: 20px; left: 20px; width: 50px; height: auto;
-      }
- 
-     .how-to-use {
-       text-align: left; background: #f4f7f6; padding: 20px;
-       border-radius: 20px; margin: 20px 0; font-size: 1rem; line-height: 1.6;
-       color: #34495e; border: 1px solid #e1e8ed;
-      }
-     .how-to-use p { margin: 8px 0; }
-     .how-to-use b { color: #0072ff; }
- 
-      .btn-main {
-       background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
-       color: #fff; padding: 18px 50px; border: none;
-       border-radius: 50px; font-weight: bold; font-size: 1.2rem; cursor: pointer;
-       transition: 0.3s;
-       box-shadow: 0 10px 20px rgba(255, 75, 43, 0.3);
-      }
-      .btn-main:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 15px 25px rgba(255, 75, 43, 0.4);
-      }
- 
-      #ar-ui {
-       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        z-index: 1000; display: none; pointer-events: none;
-      }
- 
-     .progress-container {
-       position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
-        width: 85%; height: 8px; background: rgba(255,255,255,0.2); border-radius: 10px;
-      }
- 
-     #progress-bar {
-        width: 7.69%; height: 100%; background: var(--accent);
-       border-radius: 10px; transition: 0.8s ease;
-      }
- 
-     .instruction-panel {
-       position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-        width: 90%; pointer-events: auto;
-      }
- 
-      .info-box {
-       background: rgba(0, 0, 0, 0.85); color: white; padding: 20px;
-       border-radius: 25px; border-left: 6px solid var(--accent); margin-bottom: 20px;
-      }
- 
-      .controls { display: flex; gap: 12px; }
-      
-      .btn-next {
-        flex: 3; padding: 20px; border-radius: 50px; border: none;
-        color: white; font-weight: bold; background: var(--emergency-red);
-       font-size: 1.2rem; cursor: pointer; transition: 0.3s;
-      }
- 
-     #start-cpr-btn {
-       background: var(--success-green); color: #000; display: none;
-       flex: 3; padding: 20px; border-radius: 50px; border: none;
-       font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: 0.3s;
-      }
-
-      .btn-next:disabled, #start-cpr-btn:disabled {
-        background: #7f8c8d !important;
-        color: #bdc3c7 !important;
-        cursor: not-allowed;
-        box-shadow: none;
-        transform: none;
-      }
- 
-      .btn-reset {
-        flex: 1; background: #333; color: #fff; border-radius: 50px; border: 1px solid #555;
-       font-weight: bold; cursor: pointer;
-      }
- 
-     #cpr-counter {
-       font-size: 6rem; color: #ffeb3b; font-weight: 900; display: none;
-       text-shadow: 0 0 30px rgba(255,235,59,0.8); text-align: center; margin-bottom: 15px;
-      }
-
-      #short-title {
-        font-size: 1.6rem; font-weight: bold; margin-top: 5px; color: white; letter-spacing: 1px;
-      }
- 
-
-      /* Shared compression-training controls.
-         Both prototypes use the same compression task:
-         30 user-triggered simulated compressions, a 110/min metronome,
-         a 100–120/min target, 5–6 cm depth instruction, and full recoil instruction.
-         The browser does NOT measure real physical depth or force. */
-      #compression-guide {
-        display: none;
-        margin: 0 0 12px 0;
-        padding: 12px 14px;
-        border-radius: 16px;
-        background: rgba(0,0,0,0.78);
-        color: #fff;
-        text-align: center;
-        line-height: 1.35;
-      }
-
-      #compression-guide .compression-target {
-        font-weight: 800;
-        letter-spacing: 0.4px;
-      }
-
-      #compression-guide .compression-note {
-        margin-top: 5px;
-        font-size: 0.78rem;
-        opacity: 0.82;
-      }
-
-      #compression-tap-btn {
-        display: none;
-        flex: 3;
-        min-height: 74px;
-        padding: 18px 20px;
-        border-radius: 50px;
-        border: none;
-        background: #ffeb3b;
-        color: #111;
-        font-size: 1.15rem;
-        font-weight: 900;
-        cursor: pointer;
-        touch-action: manipulation;
-        user-select: none;
-        -webkit-user-select: none;
-      }
-
-      #compression-tap-btn:active {
-        transform: scale(0.97);
-      }
-
-      #compression-feedback {
-        display: none;
-        margin: 0 0 10px 0;
-        padding: 10px 14px;
-        border-radius: 14px;
-        background: rgba(0,0,0,0.82);
-        color: #fff;
-        font-weight: 900;
-        text-align: center;
-        letter-spacing: 0.5px;
-      }
-
-     #finish-page { display: none; opacity: 0; }
-   </style>
-  </head>
- 
-  <body>
- 
-    <button id="sos-btn" class="emergency-btn" onclick="window.location.href='tel:112'">CALL 112 📞</button>
-    <button id="mute-btn" class="mute-btn" onclick="toggleMute()">🔊</button>
-    <button id="minimalist-btn" class="minimalist-btn" onclick="toggleMinimalist()">👁️</button>
- 
-    <div id="landing-page" class="overlay-page">
-      <div class="glass-card">
-        <img src="HSA.png" class="uni-logo" alt="Logo">
-       <h1>CPR AR MISSION</h1>
-       <p class="subtitle">Interactive Training</p>
-       
-        <div class="how-to-use">
-         <p>🔊 <b>Audio:</b> Turn up volume.</p>
-         <p>📷 <b>Marker:</b> Aim at <b>HIRO</b>.</p>
-         <p>🫀 <b>Pacing:</b> Tap once per compression. <b>Green = target rate (100–120/min).</b></p>
-       </div>
- 
-       <button class="btn-main" onclick="initExperience()">START SESSION</button>
+  <div id="ar-ui">
+    <div class="progress-container"><div id="progress-bar"></div></div>
+    <div class="instruction-panel">
+      <div id="cpr-counter">0 / 30</div>
+      <div id="compression-guide">
+        <div class="compression-target">TARGET: 100–120/min · 5–6 cm · FULL RECOIL</div>
+        <div class="compression-note">Tap once per simulated compression. Physical depth/force is instructed but is not measured by the phone.</div>
+      </div>
+      <div id="compression-feedback">FIND THE RHYTHM</div>
+      <div class="info-box">
+        <small id="step-num" style="color:var(--accent);font-weight:bold;">STEP 1 OF 13</small>
+        <div id="short-title">AREA SAFE</div>
+        <div id="detail-text">Make sure the area is safe before approaching the person.</div>
+      </div>
+      <div class="controls">
+        <button class="btn-reset" onclick="safeReset()">RESET</button>
+        <button id="start-cpr-btn" onclick="startCPR()">START COMPRESSIONS</button>
+        <button id="compression-tap-btn" type="button" onclick="registerCompression()">TAP COMPRESSION</button>
+        <button id="next-btn-text" class="btn-next" onclick="nextStep()">CONTINUE →</button>
       </div>
     </div>
- 
-    <div id="finish-page" class="overlay-page">
-      <div class="glass-card">
-        <h1 style="color: #27ae60;">MISSION COMPLETE</h1>
-       <p style="margin-bottom: 30px;">You have mastered the CPR cycle effectively.</p>
-       <button class="btn-main" onclick="location.reload()">RESTART</button>
-      </div>
-    </div>
- 
-    <div id="ar-ui">
-      <div class="progress-container"><div id="progress-bar"></div></div>
-      <div class="instruction-panel">
-        <div id="cpr-counter">0</div>
-        <div id="compression-guide">
-          <div class="compression-target">TARGET: 100–120/min · 5–6 cm · FULL RECOIL</div>
-          <div class="compression-note">Tap once per simulated compression. Physical depth/force is instructed but is not measured by the phone.</div>
-        </div>
-        <div id="compression-feedback">FIND THE RHYTHM</div>
-        <div class="info-box">
-         <small id="step-num" style="color: var(--accent); font-weight: bold;">STEP 1 OF 13</small>
-         <div id="short-title">AREA SAFE</div> 
-       </div>
-        <div class="controls">
-         <button class="btn-reset" onclick="location.reload()">RESET</button>
-         <button id="start-cpr-btn" onclick="startCPR()">START COMPRESSIONS</button>
-         <button id="compression-tap-btn" type="button" onclick="registerCompression()">TAP COMPRESSION</button>
-         <button id="next-btn-text" class="btn-next" onclick="nextStep()">CONTINUE →</button>
-       </div>
-      </div>
-    </div>
- 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
-     <a-assets>
-        <img id="cpr-hands" src="hands.png">
-     </a-assets>
- 
-     <a-marker preset="hiro" smooth="true" smoothCount="10" smoothTolerance="0.02" smoothThreshold="5">
-       
-       <a-entity id="group1">
-         </a-entity>
- 
-       <a-entity id="group2" visible="false">
-         </a-entity>
- 
-       <a-entity id="group3" visible="false">
-         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -0.5" rotation="180 0 0"></a-cone>
-       </a-entity>
- 
-       <a-entity id="group4" visible="false">
-         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -1" rotation="180 0 0"></a-cone>
-       </a-entity>
- 
-       <a-entity id="group5" visible="false">
-         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -0.8" rotation="180 0 0"></a-cone>
-       </a-entity>
- 
-       <a-entity id="group6" visible="false">
-         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.4 -0.6" rotation="180 0 0"></a-cone>
-       </a-entity>
- 
-       <a-entity id="group7" visible="false">
-         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -0.5" rotation="180 0 0"></a-cone>
-       </a-entity>
+  </div>
 
-       <a-entity id="group8" visible="false">
-         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.4 0" rotation="180 0 0"></a-cone>
-       </a-entity>
+  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled:false">
+    <a-assets><img id="cpr-hands" src="hands.png"></a-assets>
+    <a-marker preset="hiro" smooth="true" smoothCount="10" smoothTolerance="0.02" smoothThreshold="5">
+      <a-entity id="group1"></a-entity>
+      <a-entity id="group2" visible="false"></a-entity>
+      <a-entity id="group3" visible="false"><a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -0.5" rotation="180 0 0"></a-cone></a-entity>
+      <a-entity id="group4" visible="false"><a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -1" rotation="180 0 0"></a-cone></a-entity>
+      <a-entity id="group5" visible="false"><a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -0.8" rotation="180 0 0"></a-cone></a-entity>
+      <a-entity id="group6" visible="false"><a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.4 -0.6" rotation="180 0 0"></a-cone></a-entity>
+      <a-entity id="group7" visible="false"><a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -0.5" rotation="180 0 0"></a-cone></a-entity>
+      <a-entity id="group8" visible="false"><a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.4 0" rotation="180 0 0"></a-cone></a-entity>
+      <a-entity id="group9" visible="false"><a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 0" rotation="180 0 0"></a-cone></a-entity>
+      <a-entity id="group10" visible="false">
+        <a-image id="hand-image" src="#cpr-hands" position="-2.0 1.5 0" width="1.8" height="1.8" rotation="-90 0 0" animation="property:position; from:-2.0 1.5 0; to:-2.0 1.1 0; dur:272.5; dir:alternate; loop:true; easing:easeInOutQuad; enabled:false"></a-image>
+        <a-ring id="cpr-ring" color="#00f2fe" radius-inner="0.35" radius-outer="0.45" position="-2.0 1.05 0" rotation="-90 0 0"></a-ring>
+      </a-entity>
+      <a-entity id="group11" visible="false"><a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -1" rotation="180 0 0"></a-cone></a-entity>
+      <a-entity id="group12" visible="false"><a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.6 -1" rotation="180 0 0"></a-cone></a-entity>
+      <a-entity id="group13" visible="false"><a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.6 -1" rotation="180 0 0"></a-cone></a-entity>
+    </a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
 
-       <a-entity id="group9" visible="false">
-         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 0" rotation="180 0 0"></a-cone>
-       </a-entity>
+  <script>
+    document.addEventListener('dblclick', e => e.preventDefault(), {passive:false});
+    document.addEventListener('gesturestart', e => e.preventDefault());
 
-       <a-entity id="group10" visible="false">
-         <a-image id="hand-image" src="#cpr-hands" position="-2.0 1.5 0" width="1.8" height="1.8" rotation="-90 0 0" animation="property: position; from: -2.0 1.5 0; to: -2.0 1.1 0; dur: 272.5; dir: alternate; loop: true; easing: easeInOutQuad; enabled: false"></a-image>
-         <a-ring id="cpr-ring" color="#ff4b2b" radius-inner="0.35" radius-outer="0.45" position="-2.0 1.05 0" rotation="-90 0 0" animation="property: material.opacity; from: 1; to: 0.2; dur: 272.5; dir: alternate; loop: true"></a-ring>
-       </a-entity>
+    let currentStep = 1;
+    let count = 0;
+    let isMuted = false;
+    let isMinimalist = false;
+    let isMarkerFound = false;
+    let audioCtx = null;
+    let metronomeTimer = null;
+    let compressionActive = false;
+    let compressionTimestamps = [];
+    let compressionIntervals = [];
+    const METRONOME_RATE = 110;
+    const METRONOME_INTERVAL = 60000 / METRONOME_RATE;
+    const synth = window.speechSynthesis;
 
-       <a-entity id="group11" visible="false">
-         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.5 -1" rotation="180 0 0"></a-cone>
-       </a-entity>
+      const stepsText = [
+        'Make sure the area is safe before approaching the person.',
+        "Call out loudly and ask, 'Are you okay?'",
+        "Gently tap the person's shoulders to check for a response. If there is no response, activate emergency help by calling 112 and arrange for an AED if available.",
+        "Place one hand on the person's forehead to begin opening the airway.",
+        'Lift the chin gently using a head-tilt, chin-lift manoeuvre.',
+        'Look at the chest for movement.',
+        'Check for normal breathing for no more than 10 seconds.',
+        'Place the heel of one hand on the centre of the chest.',
+        'Place the other hand on top and position yourself over the chest.',
+        'Perform 30 chest compressions at a rate of 100–120 per minute. Compress the chest about 5–6 cm, allow full recoil after each compression, and minimize interruptions.',
+        'Tilt the head back again to open the airway before giving rescue breaths.',
+        'Pinch the nose closed.',
+        'Give 2 rescue breaths, about 1 second each, watching for the chest to rise.'
+      ];
 
-       <a-entity id="group12" visible="false">
-         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.6 -1" rotation="180 0 0"></a-cone>
-       </a-entity>
+      const shortTitles = [
+        "AREA SAFE","CALL OUT","CHECK RESPONSE","HAND ON FOREHEAD","LIFT CHIN",
+        "CHEST MOVEMENT","CHECK BREATHING","HAND ON CHEST","HAND ON TOP",
+        "30 COMPRESSIONS","TILT HEAD","CLOSE NOSE","2 RESCUE BREATHS"
+      ];
 
-       <a-entity id="group13" visible="false">
-         <a-cone color="#00f2fe" radius-bottom="0.2" height="0.6" position="-2.0 1.6 -1" rotation="180 0 0"></a-cone>
-       </a-entity>
- 
-     </a-marker>
-     <a-entity camera></a-entity>
-   </a-scene>
- 
-   <script>
-      document.addEventListener('dblclick', function(event) {
-        event.preventDefault();
-      }, { passive: false });
 
-      document.addEventListener('gesturestart', function(e) {
-        e.preventDefault();
-      });
-
-      let currentStep = 1;
-      let count = 0;
-      let timer = null;
-      let isMarkerFound = false;
-      let hasStartedSession = false;
-      let isMuted = false;
-      let isMinimalist = false;
-      let audioCtx = null;
-
+      const PROTOTYPE = 'B';
       const TARGET_RATE_MIN = 100;
       const TARGET_RATE_MAX = 120;
-      const METRONOME_RATE = 110;
-      const METRONOME_INTERVAL = 60000 / METRONOME_RATE;
       const MIN_TAP_GAP = 150;
 
-      let metronomeTimer = null;
-      let compressionActive = false;
-      let compressionTimestamps = [];
-      let compressionIntervals = [];
-      
-      const synth = window.speechSynthesis;
+      let sessionKey = null;
+      let sessionData = null;
+
+      function freshSessionData() {
+        return {
+          schemaVersion: '1.0',
+          participantId: '',
+          prototype: PROTOTYPE,
+          startedAtISO: null,
+          endedAtISO: null,
+          sessionDurationMs: null,
+          completed: false,
+          resetCount: 0,
+          nextPressCount: 0,
+          compressionStartCount: 0,
+          rejectedCompressionTapCount: 0,
+          marker: {
+            foundCount: 0,
+            lostCount: 0,
+            totalLostDurationMs: 0,
+            currentLostStartedAtMs: null
+          },
+          stepDurationsMs: Array(13).fill(0),
+          currentStepStartedAtMs: null,
+          compression: {
+            count: 0,
+            averageRate: null,
+            targetRatePercent: null,
+            targetRateMin: TARGET_RATE_MIN,
+            targetRateMax: TARGET_RATE_MAX,
+            depthMeasured: false,
+            forceMeasured: false
+          },
+          featureUsage: {
+            muteToggleCount: 0,
+            minimalistToggleCount: 0
+          },
+          events: []
+        };
+      }
+
+      function logEvent(type, details = {}) {
+        if (!sessionData) return;
+        sessionData.events.push({
+          type,
+          atISO: new Date().toISOString(),
+          step: currentStep,
+          ...details
+        });
+        persistSession();
+      }
+
+      function persistSession() {
+        if (!sessionData || !sessionKey) return;
+        localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+      }
+
+      function beginStudySession() {
+        const idInput = document.getElementById('participant-id');
+        const participantId = (idInput.value || '').trim();
+        if (!participantId) {
+          alert('Please enter the participant ID before starting.');
+          idInput.focus();
+          return false;
+        }
+
+        sessionStorage.setItem('cprParticipantId', participantId);
+        sessionData = freshSessionData();
+        sessionData.participantId = participantId;
+        sessionData.startedAtISO = new Date().toISOString();
+        sessionData.currentStepStartedAtMs = Date.now();
+        sessionKey = `CPR_AR_${participantId}_${PROTOTYPE}_${Date.now()}`;
+        logEvent('session_started');
+        return true;
+      }
+
+      function closeCurrentStepTiming() {
+        if (!sessionData || !sessionData.currentStepStartedAtMs) return;
+        const elapsed = Math.max(0, Date.now() - sessionData.currentStepStartedAtMs);
+        const index = Math.min(Math.max(currentStep - 1, 0), 12);
+        sessionData.stepDurationsMs[index] += elapsed;
+        sessionData.currentStepStartedAtMs = null;
+      }
+
+      function startCurrentStepTiming() {
+        if (sessionData) sessionData.currentStepStartedAtMs = Date.now();
+      }
+
+      function finalizeSession(completed) {
+        if (!sessionData) return;
+
+        closeCurrentStepTiming();
+
+        if (sessionData.marker.currentLostStartedAtMs !== null) {
+          sessionData.marker.totalLostDurationMs += Date.now() - sessionData.marker.currentLostStartedAtMs;
+          sessionData.marker.currentLostStartedAtMs = null;
+        }
+
+        sessionData.completed = !!completed;
+        sessionData.endedAtISO = new Date().toISOString();
+        sessionData.sessionDurationMs =
+          new Date(sessionData.endedAtISO).getTime() -
+          new Date(sessionData.startedAtISO).getTime();
+
+        persistSession();
+      }
+
+      function safeReset() {
+        if (!sessionData) return;
+        sessionData.resetCount += 1;
+        logEvent('reset_pressed');
+        resetTrainingToStart();
+      }
+
+      function downloadStudyData() {
+        if (!sessionData) {
+          alert('No study data are available in this session.');
+          return;
+        }
+        persistSession();
+        const blob = new Blob([JSON.stringify(sessionData, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const safeId = (sessionData.participantId || 'participant').replace(/[^a-zA-Z0-9_-]/g, '_');
+        a.href = url;
+        a.download = `${safeId}_Prototype_${PROTOTYPE}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function attachMarkerLogging() {
+        const marker = document.querySelector('a-marker');
+        if (!marker) return;
+
+        marker.addEventListener('markerFound', () => {
+          if (!sessionData) return;
+          sessionData.marker.foundCount += 1;
+          if (sessionData.marker.currentLostStartedAtMs !== null) {
+            sessionData.marker.totalLostDurationMs += Date.now() - sessionData.marker.currentLostStartedAtMs;
+            sessionData.marker.currentLostStartedAtMs = null;
+          }
+          logEvent('marker_found');
+        });
+
+        marker.addEventListener('markerLost', () => {
+          if (!sessionData) return;
+          sessionData.marker.lostCount += 1;
+          if (sessionData.marker.currentLostStartedAtMs === null) {
+            sessionData.marker.currentLostStartedAtMs = Date.now();
+          }
+          logEvent('marker_lost');
+        });
+      }
 
       window.addEventListener('DOMContentLoaded', () => {
-        const marker = document.querySelector('a-marker');
-        marker.addEventListener('markerFound', () => {
-          if (!isMarkerFound) {
-            isMarkerFound = true;
-            if (hasStartedSession && currentStep === 1) {
-              speakText(voiceInstructions[0]);
-            }
-          }
-        });
+        const remembered = sessionStorage.getItem('cprParticipantId');
+        if (remembered) {
+          const idInput = document.getElementById('participant-id');
+          if (idInput) idInput.value = remembered;
+        }
+        attachMarkerLogging();
       });
- 
-      const shortTitles = [
-        "AREA SAFE",
-        "CALL OUT",
-        "TAP SHOULDER",
-        "HAND ON FOREHEAD",
-        "LIFT CHIN",
-        "CHEST MOVEMENT",
-        "CHECK BREATHING",
-        "HAND ON CHEST",
-        "HAND ON TOP",
-        "30 COMPRESSIONS",
-        "TILT HEAD",
-        "CLOSE NOSE",
-        "2 RESCUE BREATHS"
-      ];
 
-      const voiceInstructions = [
-        "Make sure the area is safe!",
-        "Call out loudly: Are you okay?",
-        "Tap the patient's shoulder gently!",
-        "Place your hand on the forehead",
-        "Lift the chin gently",
-        "Look for chest movement",
-        "Check for breathing for 10 seconds",
-        "Place the heel of your hand on chest",
-        "Place your other hand on top",
-        "Perform 30 chest compressions at 100 to 120 per minute. Compress 5 to 6 centimeters, allow full chest recoil after each compression, and minimize interruptions.",
-        "Tilt the head back",
-        "Close the nose",
-        "Give 2 rescue breaths, 1 second each, until the chest rises"
-      ];
+      window.addEventListener('beforeunload', () => {
+        persistSession();
+      });
 
-      function toggleMute() {
-        isMuted = !isMuted;
-        const muteBtn = document.getElementById('mute-btn');
-        if (isMuted) {
-          muteBtn.innerText = '🔇';
-          synth.cancel();
-          document.getElementById('next-btn-text').disabled = false;
-          document.getElementById('start-cpr-btn').disabled = false;
-        } else {
-          muteBtn.innerText = '🔊';
-        }
+
+    // Track current marker state as well as the common logging counters.
+    window.addEventListener('DOMContentLoaded', () => {
+      const marker = document.querySelector('a-marker');
+      marker.addEventListener('markerFound', () => {
+        isMarkerFound = true;
+        if (sessionData && currentStep === 1) speakText(stepsText[0]);
+      });
+      marker.addEventListener('markerLost', () => { isMarkerFound = false; });
+    });
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      if (sessionData) {
+        sessionData.featureUsage.muteToggleCount += 1;
+        logEvent('mute_toggled', {muted:isMuted});
       }
 
-      function toggleMinimalist() {
-        isMinimalist = !isMinimalist;
-        const minBtn = document.getElementById('minimalist-btn');
-        const progContainer = document.querySelector('.progress-container');
-        const stepNum = document.getElementById('step-num');
-        
-        if (isMinimalist) {
-          minBtn.innerText = '🕶️';
-          progContainer.style.display = 'none';
-          stepNum.style.display = 'none';
-        } else {
-          minBtn.innerText = '👁️';
-          progContainer.style.display = 'block';
-          stepNum.style.display = 'block';
-        }
-      }
- 
-      function beep(freq, duration) {
-        if (isMuted || !audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        osc.start(); osc.stop(audioCtx.currentTime + duration);
-      }
+      document.getElementById('mute-btn').innerText = isMuted ? '🔇' : '🔊';
+      const detail = document.getElementById('detail-text');
 
-      function speakText(text) {
+      if (isMuted) {
         synth.cancel();
+        detail.innerText = stepsText[currentStep - 1];
+        detail.style.display = 'block';
+      } else {
+        detail.style.display = 'none';
+        if (sessionData) speakText(stepsText[currentStep - 1]);
+      }
+    }
 
-        const nextBtn = document.getElementById('next-btn-text');
-        const startCprBtn = document.getElementById('start-cpr-btn');
-        
+    function toggleMinimalist() {
+      isMinimalist = !isMinimalist;
+      if (sessionData) {
+        sessionData.featureUsage.minimalistToggleCount += 1;
+        logEvent('minimalist_toggled', {minimalist:isMinimalist});
+      }
+      document.getElementById('minimalist-btn').innerText = isMinimalist ? '🕶️' : '👁️';
+      document.querySelector('.progress-container').style.display = isMinimalist ? 'none' : 'block';
+      document.getElementById('step-num').style.display = isMinimalist ? 'none' : 'block';
+    }
+
+    function beep(freq,duration) {
+      if (isMuted || !audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(.1,audioCtx.currentTime);
+      osc.start(); osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function speakText(text) {
+      if (isMuted || !text) return;
+      synth.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = 1.0;
+      synth.speak(u);
+      logEvent('audio_instruction_started', {textStep:currentStep});
+    }
+
+    function initExperience() {
+      if (!beginStudySession()) return;
+
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      if (!isMarkerFound) speakText('Please point the camera at the marker.');
+      else speakText(stepsText[0]);
+
+      document.getElementById('landing-page').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('landing-page').style.display = 'none';
+        document.getElementById('ar-ui').style.display = 'block';
+        document.getElementById('sos-btn').style.display = 'block';
+        document.getElementById('mute-btn').style.display = 'block';
+        document.getElementById('minimalist-btn').style.display = 'block';
+      },800);
+    }
+
+    function stopCompressionActivity() {
+      compressionActive = false;
+      if (metronomeTimer) { clearInterval(metronomeTimer); metronomeTimer = null; }
+      const handImg = document.getElementById('hand-image');
+      if (handImg) handImg.setAttribute('animation','enabled:false');
+    }
+
+    function resetTrainingToStart() {
+      stopCompressionActivity();
+      hideCompressionUI();
+      synth.cancel();
+
+      closeCurrentStepTiming();
+      for (let i = 1; i <= 13; i++) {
+        const g = document.getElementById('group' + i);
+        if (g) g.setAttribute('visible', i === 1 ? 'true' : 'false');
+      }
+
+      currentStep = 1;
+      count = 0;
+      compressionTimestamps = [];
+      compressionIntervals = [];
+
+      document.getElementById('step-num').innerText = 'STEP 1 OF 13';
+      document.getElementById('short-title').innerText = shortTitles[0];
+      document.getElementById('detail-text').innerText = stepsText[0];
+      document.getElementById('detail-text').style.display = isMuted ? 'block' : 'none';
+      document.getElementById('progress-bar').style.width = '7.69%';
+      document.getElementById('start-cpr-btn').style.display = 'none';
+      document.getElementById('next-btn-text').style.display = 'block';
+      document.getElementById('next-btn-text').innerText = 'CONTINUE →';
+      resetCompressionFeedback();
+
+      startCurrentStepTiming();
+      logEvent('training_reset_to_step_1');
+
+      if (!isMuted) speakText(stepsText[0]);
+    }
+
+    function hideCompressionUI() {
+      document.getElementById('compression-guide').style.display = 'none';
+      document.getElementById('compression-feedback').style.display = 'none';
+      document.getElementById('compression-tap-btn').style.display = 'none';
+      document.getElementById('cpr-counter').style.display = 'none';
+    }
+
+    function resetCompressionFeedback() {
+      const feedback = document.getElementById('compression-feedback');
+      const ring = document.getElementById('cpr-ring');
+      feedback.innerText = 'FIND THE RHYTHM';
+      feedback.style.color = '#fff';
+      if (ring) ring.setAttribute('color','#00f2fe');
+    }
+
+    function nextStep() {
+      if (compressionActive) return;
+
+      sessionData.nextPressCount += 1;
+      logEvent('continue_pressed');
+      closeCurrentStepTiming();
+      stopCompressionActivity();
+      hideCompressionUI();
+
+      document.getElementById('next-btn-text').style.display = 'block';
+      document.getElementById('start-cpr-btn').style.display = 'none';
+
+      if (currentStep < 13) {
+        document.getElementById('group' + currentStep).setAttribute('visible','false');
+        currentStep++;
+        document.getElementById('group' + currentStep).setAttribute('visible','true');
+        document.getElementById('step-num').innerText = `STEP ${currentStep} OF 13`;
+        document.getElementById('short-title').innerText = shortTitles[currentStep - 1];
+        document.getElementById('detail-text').innerText = stepsText[currentStep - 1];
+
+        // IMPORTANT: same full medical content as Prototype A. It is delivered as
+        // audio by default; if the participant mutes audio, the same full text is shown.
         if (isMuted) {
-          nextBtn.disabled = false;
-          startCprBtn.disabled = false;
-          return;
-        }
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = 1.0;
-        
-        utterance.onstart = () => {
-          nextBtn.disabled = true;
-          startCprBtn.disabled = true;
-        };
-
-        utterance.onend = () => {
-          nextBtn.disabled = false;
-          startCprBtn.disabled = false;
-        };
-
-        utterance.onerror = () => {
-          nextBtn.disabled = false;
-          startCprBtn.disabled = false;
-        };
-
-        synth.speak(utterance);
-      }
- 
-      function initExperience() {
-        if (!audioCtx) {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          audioCtx = new AudioContext();
-        }
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        
-        hasStartedSession = true;
-        
-        if (!isMarkerFound) {
-          speakText("Please point the camera at the marker.");
+          document.getElementById('detail-text').style.display = 'block';
         } else {
-          speakText(voiceInstructions[0]);
-        }
-        
-        document.getElementById('landing-page').style.opacity = '0';
-        setTimeout(() => {
-         document.getElementById('landing-page').style.display = 'none';
-         document.getElementById('ar-ui').style.display = 'block';
-         document.getElementById('sos-btn').style.display = 'block';
-         document.getElementById('mute-btn').style.display = 'block';
-         document.getElementById('minimalist-btn').style.display = 'block';
-        }, 800);
-      }
- 
-      function stopCompressionActivity() {
-        compressionActive = false;
-
-        if (metronomeTimer) {
-          clearInterval(metronomeTimer);
-          metronomeTimer = null;
+          document.getElementById('detail-text').style.display = 'none';
+          speakText(stepsText[currentStep - 1]);
         }
 
-        const handImg = document.getElementById('hand-image');
-        if (handImg) {
-          handImg.setAttribute('animation', 'enabled: false');
+        document.getElementById('progress-bar').style.width = (currentStep * 7.69) + '%';
+        document.getElementById('next-btn-text').innerText = currentStep === 13 ? 'FINISH ✓' : 'CONTINUE →';
+
+        if (currentStep === 10) {
+          document.getElementById('next-btn-text').style.display = 'none';
+          document.getElementById('start-cpr-btn').style.display = 'block';
+          resetCompressionFeedback();
         }
+        startCurrentStepTiming();
+        logEvent('step_started', {newStep:currentStep});
+      } else {
+        showFinishPage();
       }
+    }
 
-      function hideCompressionUI() {
-        document.getElementById('compression-guide').style.display = 'none';
-        document.getElementById('compression-feedback').style.display = 'none';
-        document.getElementById('compression-tap-btn').style.display = 'none';
-        document.getElementById('cpr-counter').style.display = 'none';
-      }
+    function startMetronome() {
+      beep(950,.08);
+      metronomeTimer = setInterval(() => beep(950,.08), METRONOME_INTERVAL);
+    }
 
-      function resetCompressionFeedback() {
-        const feedback = document.getElementById('compression-feedback');
-        const ring = document.getElementById('cpr-ring');
+    function startCPR() {
+      sessionData.compressionStartCount += 1;
+      logEvent('compression_started');
 
+      count = 0;
+      compressionTimestamps = [];
+      compressionIntervals = [];
+      compressionActive = true;
+
+      document.getElementById('cpr-counter').style.display = 'block';
+      document.getElementById('cpr-counter').innerText = '0 / 30';
+      document.getElementById('compression-guide').style.display = 'block';
+      document.getElementById('compression-feedback').style.display = 'block';
+      document.getElementById('start-cpr-btn').style.display = 'none';
+      document.getElementById('next-btn-text').style.display = 'none';
+      document.getElementById('compression-tap-btn').style.display = 'block';
+
+      const handImg = document.getElementById('hand-image');
+      if (handImg) handImg.setAttribute('animation','enabled:true');
+      resetCompressionFeedback();
+      startMetronome();
+    }
+
+    function getRollingCompressionRate() {
+      if (!compressionIntervals.length) return null;
+      const recent = compressionIntervals.slice(-3);
+      const avg = recent.reduce((a,b) => a+b,0) / recent.length;
+      return Math.round(60000 / avg);
+    }
+
+    function updateRateFeedback(rate) {
+      const feedback = document.getElementById('compression-feedback');
+      const ring = document.getElementById('cpr-ring');
+
+      if (!rate) {
         feedback.innerText = 'FIND THE RHYTHM';
-        feedback.style.color = '#ffffff';
+        feedback.style.color = '#fff';
+        if (ring) ring.setAttribute('color','#00f2fe');
+        return;
+      }
+      if (rate >= TARGET_RATE_MIN && rate <= TARGET_RATE_MAX) {
+        feedback.innerText = `GOOD RATE • ${rate}/min`;
+        feedback.style.color = '#00ff88';
+        if (ring) ring.setAttribute('color','#00ff88');
+      } else if (rate < TARGET_RATE_MIN) {
+        feedback.innerText = `TOO SLOW • ${rate}/min`;
+        feedback.style.color = '#ff4b2b';
+        if (ring) ring.setAttribute('color','#ff4b2b');
+      } else {
+        feedback.innerText = `TOO FAST • ${rate}/min`;
+        feedback.style.color = '#ff4b2b';
+        if (ring) ring.setAttribute('color','#ff4b2b');
+      }
+    }
 
-        if (ring) {
-          ring.setAttribute('color', '#00f2fe');
-          ring.setAttribute('material', 'opacity', 1);
-        }
+    function registerCompression() {
+      if (!compressionActive || count >= 30) return;
+      const now = performance.now();
+      const previous = compressionTimestamps[compressionTimestamps.length - 1];
+
+      if (previous && (now - previous) < MIN_TAP_GAP) {
+        sessionData.rejectedCompressionTapCount += 1;
+        logEvent('compression_tap_rejected', {gapMs:now - previous});
+        return;
       }
 
-      function nextStep() {
-        clearInterval(timer);
-        timer = null;
-        stopCompressionActivity();
-        hideCompressionUI();
+      if (previous) compressionIntervals.push(now - previous);
+      compressionTimestamps.push(now);
+      count++;
+      document.getElementById('cpr-counter').innerText = `${count} / 30`;
+      updateRateFeedback(getRollingCompressionRate());
+      logEvent('compression_tap', {count, rollingRate:getRollingCompressionRate()});
 
-        document.getElementById('next-btn-text').style.display = 'block';
-        document.getElementById('start-cpr-btn').style.display = 'none';
+      if (count >= 30) finishCompressionSession();
+    }
 
-        if (currentStep < 13) {
-          document.getElementById('group' + currentStep).setAttribute('visible', 'false');
-          currentStep++;
-          document.getElementById('group' + currentStep).setAttribute('visible', 'true');
+    function finishCompressionSession() {
+      stopCompressionActivity();
+      document.getElementById('compression-tap-btn').style.display = 'none';
 
-          document.getElementById('step-num').innerText = `STEP ${currentStep} OF 13`;
-          document.getElementById('short-title').innerText = shortTitles[currentStep - 1];
-          speakText(voiceInstructions[currentStep - 1]);
+      const averageRate = compressionTimestamps.length > 1
+        ? Math.round(60000 * (compressionTimestamps.length - 1) /
+          (compressionTimestamps[compressionTimestamps.length - 1] - compressionTimestamps[0]))
+        : null;
 
-          document.getElementById('progress-bar').style.width = (currentStep * 7.69) + '%';
+      const intervalsInTarget = compressionIntervals.filter(interval => {
+        const rate = 60000 / interval;
+        return rate >= TARGET_RATE_MIN && rate <= TARGET_RATE_MAX;
+      }).length;
 
-          if (currentStep === 13) {
-            document.getElementById('next-btn-text').innerText = "FINISH ✓";
-          }
+      const targetRatePercent = compressionIntervals.length
+        ? Math.round((intervalsInTarget / compressionIntervals.length) * 100)
+        : null;
 
-          if (currentStep === 10) {
-            document.getElementById('next-btn-text').style.display = 'none';
-            document.getElementById('start-cpr-btn').style.display = 'block';
-            resetCompressionFeedback();
-          }
-        } else {
-          showFinishPage();
-        }
+      sessionData.compression = {
+        count,
+        averageRate,
+        targetRatePercent,
+        targetRateMin: TARGET_RATE_MIN,
+        targetRateMax: TARGET_RATE_MAX,
+        depthMeasured:false,
+        forceMeasured:false
+      };
+      logEvent('compression_completed', {averageRate,targetRatePercent});
+
+      const feedback = document.getElementById('compression-feedback');
+      const ring = document.getElementById('cpr-ring');
+      document.getElementById('cpr-counter').innerText = averageRate ? `DONE! Avg: ${averageRate}/min` : 'DONE!';
+
+      if (averageRate && averageRate >= TARGET_RATE_MIN && averageRate <= TARGET_RATE_MAX) {
+        feedback.innerText = '30 COMPLETE • TARGET RATE ACHIEVED';
+        feedback.style.color = '#00ff88';
+        if (ring) ring.setAttribute('color','#00ff88');
+      } else {
+        feedback.innerText = '30 COMPLETE • REVIEW THE TARGET RATE';
+        feedback.style.color = '#ffeb3b';
       }
 
-      function startMetronome() {
-        beep(950, 0.08);
-        metronomeTimer = setInterval(() => {
-          beep(950, 0.08);
-        }, METRONOME_INTERVAL);
-      }
+      document.getElementById('next-btn-text').style.display = 'block';
+      document.getElementById('next-btn-text').innerText = 'CONTINUE →';
+      speakText('Thirty compressions complete. Proceed to the next step.');
+    }
 
-      function startCPR() {
-        stopCompressionActivity();
-
-        count = 0;
-        compressionTimestamps = [];
-        compressionIntervals = [];
-        compressionActive = true;
-
-        const handImg = document.getElementById('hand-image');
-        const counter = document.getElementById('cpr-counter');
-        const startBtn = document.getElementById('start-cpr-btn');
-        const nextBtn = document.getElementById('next-btn-text');
-        const tapBtn = document.getElementById('compression-tap-btn');
-
-        counter.style.display = 'block';
-        counter.innerText = '0 / 30';
-        document.getElementById('compression-guide').style.display = 'block';
-        document.getElementById('compression-feedback').style.display = 'block';
-
-        startBtn.style.display = 'none';
-        nextBtn.style.display = 'none';
-        tapBtn.style.display = 'block';
-
-        resetCompressionFeedback();
-
-        if (handImg) {
-          handImg.setAttribute('animation', 'enabled: true');
-        }
-
-        if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-
-        startMetronome();
-      }
-
-      function getRollingCompressionRate() {
-        if (compressionIntervals.length === 0) return null;
-        const recent = compressionIntervals.slice(-3);
-        const avgInterval = recent.reduce((sum, value) => sum + value, 0) / recent.length;
-        return Math.round(60000 / avgInterval);
-      }
-
-      function updateRateFeedback(rate) {
-        const feedback = document.getElementById('compression-feedback');
-        const ring = document.getElementById('cpr-ring');
-
-        if (!rate) {
-          feedback.innerText = 'FIND THE RHYTHM';
-          feedback.style.color = '#ffffff';
-          if (ring) ring.setAttribute('color', '#00f2fe');
-          return;
-        }
-
-        if (rate >= TARGET_RATE_MIN && rate <= TARGET_RATE_MAX) {
-          feedback.innerText = `GOOD RATE • ${rate}/min`;
-          feedback.style.color = '#00ff88';
-          if (ring) ring.setAttribute('color', '#00ff88');
-        } else if (rate < TARGET_RATE_MIN) {
-          feedback.innerText = `TOO SLOW • ${rate}/min`;
-          feedback.style.color = '#ff4b2b';
-          if (ring) ring.setAttribute('color', '#ff4b2b');
-        } else {
-          feedback.innerText = `TOO FAST • ${rate}/min`;
-          feedback.style.color = '#ff4b2b';
-          if (ring) ring.setAttribute('color', '#ff4b2b');
-        }
-
-        // Short visual confirmation for each registered compression.
-        if (ring) {
-          ring.removeAttribute('animation__tap');
-          requestAnimationFrame(() => {
-            ring.setAttribute(
-              'animation__tap',
-              'property: scale; from: 1 1 1; to: 1.14 1.14 1.14; dur: 110; dir: alternate; loop: 1'
-            );
-          });
-        }
-      }
-
-      function registerCompression() {
-        if (!compressionActive || count >= 30) return;
-
-        const now = performance.now();
-        const previous = compressionTimestamps[compressionTimestamps.length - 1];
-
-        // Protect against duplicate touch/click events.
-        if (previous && (now - previous) < MIN_TAP_GAP) return;
-
-        if (previous) {
-          compressionIntervals.push(now - previous);
-        }
-
-        compressionTimestamps.push(now);
-        count++;
-
-        document.getElementById('cpr-counter').innerText = `${count} / 30`;
-
-        // A short rolling average avoids rapid red/green flicker caused by one imperfect tap.
-        const rollingRate = getRollingCompressionRate();
-        updateRateFeedback(rollingRate);
-
-        if (count >= 30) {
-          finishCompressionSession();
-        }
-      }
-
-      function finishCompressionSession() {
-        const counter = document.getElementById('cpr-counter');
-        const nextBtn = document.getElementById('next-btn-text');
-        const tapBtn = document.getElementById('compression-tap-btn');
-        const feedback = document.getElementById('compression-feedback');
-        const ring = document.getElementById('cpr-ring');
-
-        stopCompressionActivity();
-        tapBtn.style.display = 'none';
-
-        const averageRate =
-          compressionTimestamps.length > 1
-            ? Math.round(
-                60000 * (compressionTimestamps.length - 1) /
-                (compressionTimestamps[compressionTimestamps.length - 1] - compressionTimestamps[0])
-              )
-            : null;
-
-        const intervalsInTarget = compressionIntervals.filter(interval => {
-          const rate = 60000 / interval;
-          return rate >= TARGET_RATE_MIN && rate <= TARGET_RATE_MAX;
-        }).length;
-
-        const targetRatePercent =
-          compressionIntervals.length > 0
-            ? Math.round((intervalsInTarget / compressionIntervals.length) * 100)
-            : null;
-
-        window.lastCompressionMetrics = {
-          prototype: 'B',
-          count: count,
-          averageRate: averageRate,
-          targetRatePercent: targetRatePercent,
-          targetRateMin: TARGET_RATE_MIN,
-          targetRateMax: TARGET_RATE_MAX,
-          depthMeasured: false,
-          forceMeasured: false
-        };
-
-        counter.innerText = averageRate
-          ? `DONE!  Avg: ${averageRate}/min`
-          : 'DONE!';
-
-        if (averageRate && averageRate >= TARGET_RATE_MIN && averageRate <= TARGET_RATE_MAX) {
-          feedback.innerText = '30 COMPLETE • TARGET RATE ACHIEVED';
-          feedback.style.color = '#00ff88';
-          if (ring) ring.setAttribute('color', '#00ff88');
-        } else {
-          feedback.innerText = '30 COMPLETE • REVIEW THE TARGET RATE';
-          feedback.style.color = '#ffeb3b';
-          if (ring) ring.setAttribute('color', '#ffeb3b');
-        }
-
-        nextBtn.style.display = 'block';
-        nextBtn.disabled = false;
-        nextBtn.innerText = 'CONTINUE →';
-
-        speakText("Thirty compressions complete. Proceed to the next step.");
-      }
-
-      function showFinishPage() {
-        document.getElementById('ar-ui').style.display = 'none';
-        document.getElementById('sos-btn').style.display = 'none';
-        document.getElementById('mute-btn').style.display = 'none';
-        document.getElementById('minimalist-btn').style.display = 'none';
-        const fp = document.getElementById('finish-page');
-        fp.style.display = 'flex';
-        setTimeout(() => { fp.style.opacity = '1'; }, 100);
-        speakText("Mission Complete. Well done!");
-      }
-   </script>
-  </body>
+    function showFinishPage() {
+      finalizeSession(true);
+      logEvent('session_completed');
+      document.getElementById('ar-ui').style.display = 'none';
+      document.getElementById('sos-btn').style.display = 'none';
+      document.getElementById('mute-btn').style.display = 'none';
+      document.getElementById('minimalist-btn').style.display = 'none';
+      const fp = document.getElementById('finish-page');
+      fp.style.display = 'flex';
+      setTimeout(() => fp.style.opacity = '1',100);
+      speakText('Mission complete. Well done.');
+    }
+  </script>
+</body>
 </html>
